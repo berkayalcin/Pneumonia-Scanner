@@ -1,33 +1,59 @@
 ﻿
 $(document).ready(function () {
-    start();
+    //$('#results').fadeOut(1);
+    initializeTensorModel();
 });
-async function start() {
-    tf.ENV.set('WEBGL_PACK', false)
-    const model = await tf.loadLayersModel('https://localhost:44329/model/model.json');
-    console.log(model);
-    tf.tidy(() => {
-        const IMAGE_SIZE = 224;
 
-        var image = tf.browser.fromPixels(document.getElementById('image1')).toFloat();
+function submitModel() {
+    if (!window.model) {
+        swal("Hata Oluştu!", "Model Oluşturulurken hata oluştu! Lütfen tekrar deneyin.", "error");
+        return;
+    }
+    var image = document.getElementById('validatedCustomFile').value;
+    if (!image) {
+        swal("Hata Oluştu!", "Resim seçilirken hata oluştu.", "error");
+    }
+    console.warn(image);
+    predict();
+}
+
+async function predict() {
+    //tf.ENV.set('WEBGL_PACK', false)
+    //const model = await tf.loadLayersModel('https://localhost:44329/model/model.json');
+    tf.tidy(() => {
+        var image = tf.browser.fromPixels(document.getElementById('image')).toFloat();
         const offset = tf.scalar(127.5);
         const normalized = image.sub(offset).div(offset);
-        const batched = normalized.reshape([1, IMAGE_SIZE, IMAGE_SIZE, 3]);
-        const prediction = model.predict(batched);
+        const batched = normalized.reshape([1, window.image_size, window.image_size, 3]);
+        const prediction = window.model.predict(batched);
         const tensorData = prediction.dataSync();
         const normalProb = tensorData[0];
         const anormalProb = tensorData[1];
-        if (normalProb < 0.5) {
-            $('#resultLabel').addClass("text-danger");
-            $('#resultLabel').html('Zature Belirtisi.');
-        } else {
-            $('#resultLabel').addClass("text-success");
-            $('#resultLabel').html('Zature Belirtisi Bulunmadı.');
-        }
-        $('#resultLabel').removeAttr('hidden');
-        $('#resultLabel').removeProp('hidden');
-        console.log(tensorData);
+        $('#zatureLabel').html('Zatüre Olma İhtimali : ' + anormalProb.toString().substring(0,4));
+        $('#normalLabel').html('Normal Olma İhtimali : ' + normalProb.toString().substring(0, 4));
+        $('#results').removeAttr('hidden');
+        $('#image').attr('hidden', 'hidden');
+
     });
-   
-    //console.log(prediction);
+}
+async function initializeTensorModel() {
+    tf.ENV.set('WEBGL_PACK', false)
+    const model = await tf.loadLayersModel('https://localhost:44329/model/model.json');
+    window.model = model;
+    window.image_size = 224;
+};
+
+function onFileSelected(event) {
+    $('#results').attr('hidden','hidden');
+    $('#image').removeAttr('hidden');
+
+    var selectedFile = event.target.files[0];
+    var reader = new FileReader();
+    var imgtag = document.getElementById("image");
+    imgtag.title = selectedFile.name;
+    reader.onload = function (event) {
+        imgtag.src = event.target.result;
+    };
+    reader.readAsDataURL(selectedFile);
+
 }
