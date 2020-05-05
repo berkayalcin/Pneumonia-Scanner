@@ -33,6 +33,7 @@ async function predict() {
         $('#normalLabel').html('Normal Olma İhtimali : ' + normalProb.toString().substring(0, 4));
         $('#results').removeAttr('hidden');
         $('#image').attr('hidden', 'hidden');
+        console.warn(tensorData);
 
     });
 }
